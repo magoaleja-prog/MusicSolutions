@@ -75,15 +75,30 @@ if (!function_exists('asset')) {
 }
 
 if (!function_exists('url')) {
+    /**
+     * Absolute URL generada de forma automatica (host + puerto + subcarpeta).
+     * Usa APP_URL solo si esta definido; si no, lo deduce del request. Asi la
+     * aplicacion funciona en cualquier puerto local y en un hosting.
+     */
     function url(string $path = ''): string
     {
-        $base = rtrim((string) config('app.url', ''), '/');
+        $configured = rtrim((string) config('app.url', ''), '/');
 
-        if ($base === '') {
-            $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/');
+        if ($configured !== '') {
+            return $configured . '/' . ltrim($path, '/');
         }
 
-        return $base . '/' . ltrim($path, '/');
+        $scheme = 'http';
+        if ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')) {
+            $scheme = 'https';
+        }
+
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $script = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? '/index.php'));
+        $directory = rtrim(dirname($script), '/');
+
+        return $scheme . '://' . $host . $directory . '/' . ltrim($path, '/');
     }
 }
 
