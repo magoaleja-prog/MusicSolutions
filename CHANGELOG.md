@@ -11,9 +11,15 @@ y el proyecto usa [Versionado Semantico](https://semver.org/lang/es/).
 
 - **Rediseno rock**: tema oscuro con tipografias Anton/Outfit/JetBrains Mono,
   neones, grano, ecualizadores animados y cinta marquee en la portada.
-- **Musica escuchable**: columna `preview_url` en el catalogo con MP3 reales
-  (SoundHelix), reproductor global en la barra inferior y botones de play en la
-  portada, el buscador, el panel y los resultados de iTunes.
+- **Catalogo real de musica**: `bin/seed.php` descarga temas reales de iTunes
+  (titulo, artista, album, genero, portada y preview de audio) y reemplaza los
+  demos de SoundHelix cuyos nombres no correspondian al audio. Repetible e
+  idempotente: con red amplia el catalogo, sin red conserva el de demostracion.
+  Incluye portadas en los resultados, en la portada y en el reproductor global
+  (nueva columna `artwork_url` en `songs`, migracion `0006`).
+- **Musica escuchable**: reproductor global en la barra inferior con progreso y
+  volumen, botones de play en la portada, el buscador, el panel y los
+  resultados de iTunes.
 - **Panel de accesibilidad** (boton flotante): alto contraste, texto grande,
   guia de lectura y modo sin animaciones; preferencias persistentes por
   dispositivo. Salto de navegacion y foco visible en toda la interfaz.
@@ -38,6 +44,9 @@ y el proyecto usa [Versionado Semantico](https://semver.org/lang/es/).
   la vista (`pageScripts`, `bodyClass`), lo que habilitaba scripts y clases de
   pagina que antes no se cargaban.
 - `Request` ya lee cuerpos JSON (necesario para la API de lint).
+- La **busqueda en vivo** consultaba `/buscar` (pagina HTML) esperando JSON y
+  siempre fallaba: ahora usa el endpoint `/api/buscar` y solo renderiza en
+  cliente, dejando el formulario como fallback sin JavaScript.
 - La redireccion de `DeveloperController::destroy` apuntaba a una ruta inexistente.
 - `is_writable()` daba falsos negativos en directorios de OneDrive: el linter
   valida la escritura al crearla, no antes.
