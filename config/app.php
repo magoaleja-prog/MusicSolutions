@@ -6,7 +6,7 @@ return [
     'name' => env('APP_NAME', 'MusicSolutions'),
     'env' => env('APP_ENV', 'production'),
     'debug' => env('APP_DEBUG', false),
-    'url' => env('APP_URL', 'http://localhost:8000'),
+    'url' => env('APP_URL', ''),
     'timezone' => env('APP_TIMEZONE', 'UTC'),
     'version' => '1.0.0',
     'upload_max_size' => (int) env('UPLOAD_MAX_SIZE', 10 * 1024 * 1024),

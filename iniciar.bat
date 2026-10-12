@@ -1,8 +1,9 @@
 @echo off
+setlocal EnableDelayedExpansion
 REM ================================================================
 REM  MusicSolutions - Arranque rapido (Windows + XAMPP)
-REM  Doble clic para: encender MySQL si hace falta, levantar el
-REM  servidor web y abrir el navegador en http://localhost:8000
+REM  Enciende MySQL si hace falta, busca un puerto libre (80 si es
+REM  posible, para entrar sin teclear :8000) y abre el navegador.
 REM ================================================================
 title MusicSolutions
 cd /d "%~dp0"
@@ -32,15 +33,29 @@ if %errorlevel%==0 (
     )
 )
 
+REM --- 2. Puerto: 80 si esta libre, si no 8080 o 8001 ---------------
+set "PORT=80"
+netstat -ano | findstr /R /C:":!PORT! .*LISTENING" >nul 2>&1
+if !errorlevel!==0 (
+    set "PORT=8080"
+    netstat -ano | findstr /R /C:":!PORT! .*LISTENING" >nul 2>&1
+    if !errorlevel!==0 (
+        set "PORT=8001"
+    )
+)
+
+if "%PORT%"=="80" ( set "URL=http://localhost" ) else ( set "URL=http://localhost:!PORT!" )
+
 echo.
-echo  [..] Levantando el servidor web en http://localhost:8000
+echo  [..] Levantando el servidor web en !URL!
 echo.
 
-REM --- 2. Servidor PHP + navegador ---------------------------------
-start "MusicSolutions PHP" /min "C:\xampp\php\php.exe" -S localhost:8000 -t public public/router.php
+REM --- 3. Servidor PHP + navegador ----------------------------------
+start "MusicSolutions PHP" /min "C:\xampp\php\php.exe" -S localhost:!PORT! -t public public/router.php
 timeout /t 3 /nobreak >nul
-start "" "http://localhost:8000"
+start "" "!URL!"
 
+echo  [OK] Abierto: !URL!
 echo.
 echo  Ya puedes entrar con:
 echo    Usuario:  demo@musicsolutions.test
