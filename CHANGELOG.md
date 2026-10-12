@@ -41,6 +41,12 @@ y el proyecto usa [Versionado Semantico](https://semver.org/lang/es/).
 - La redireccion de `DeveloperController::destroy` apuntaba a una ruta inexistente.
 - `is_writable()` daba falsos negativos en directorios de OneDrive: el linter
   valida la escritura al crearla, no antes.
+- `url()` generaba URLs con backslashes (`http://host\/assets/...`) en Windows
+  porque `dirname()` de `SCRIPT_NAME` devuelve `\`; ahora normaliza el separador
+  y los estilos y scripts se cargan con diseno.
+- `iniciar.bat` fallaba con un error de parseo de cmd ("No se esperaba...") al
+  hacer doble clic; reescrito sin bloques parentizados, con comprobacion de que
+  el servidor responde antes de abrir el navegador.
 
 ## [1.0.0] - 2026-10-12
 
