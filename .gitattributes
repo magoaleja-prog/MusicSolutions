@@ -1,0 +1,36 @@
+# Normalize line endings on commit, keep native on checkout
+* text=auto
+
+# Shell scripts must keep LF
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Windows scripts keep CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# PHP and web assets
+*.php text diff=php
+*.html text
+*.css text
+*.js text
+*.json text
+*.md text
+*.yml text
+*.yaml text
+*.sql text
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg text
+*.pdf binary
+*.woff binary
+*.woff2 binary
+
+# Linguist overrides
+/public/assets/** linguist-documentation=false
+/database/migrations/** linguist-language=SQL
