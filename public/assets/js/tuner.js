@@ -1,5 +1,7 @@
 /* ==========================================================================
-   MusicSolutions · Afinador con deteccion de tono (Web Audio API)
+   MusicSolutions · Afinador en tiempo real (Web Audio API)
+   Usa el modulo puro Pitch (pitch-detection.js) para detectar la nota.
+   Ademas puede sonar la nota de referencia de cada cuerda para afinar de oido.
    ========================================================================== */
 (function () {
     'use strict';
@@ -21,9 +23,6 @@
     const stringsEl = root.querySelector('[data-tuner-strings]');
     const calibration = root.querySelector('[data-tuner-a4]');
 
-    const NOTE_INDEX = { C: 0, 'C#': 1, Db: 1, D: 2, 'D#': 3, Eb: 3, E: 4, F: 5, 'F#': 6, Gb: 6, G: 7, 'G#': 8, Ab: 8, A: 9, 'A#': 10, Bb: 10, B: 11 };
-    const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-
     let audioContext = null;
     let analyser = null;
     let source = null;
@@ -33,95 +32,12 @@
     let manualTarget = null;
     let frame = 0;
 
-    function referenceFrequency() {
+    // Contexto de audio aparte para sonar las notas de referencia
+    let toneContext = null;
+    let activeTone = null;
+
+    function referenceA4() {
         return calibration && calibration.checked ? 442 : 440;
-    }
-
-    function noteToFrequency(name) {
-        const match = /^([A-G][#b]?)(-?\d+)$/.exec(name);
-        if (!match) {
-            return null;
-        }
-
-        const midi = (parseInt(match[2], 10) + 1) * 12 + NOTE_INDEX[match[1]];
-        return referenceFrequency() * Math.pow(2, (midi - 69) / 12);
-    }
-
-    function frequencyToMidi(frequency) {
-        return 69 + 12 * Math.log2(frequency / referenceFrequency());
-    }
-
-    function midiToName(midi) {
-        const rounded = Math.round(midi);
-        const name = NOTE_NAMES[((rounded % 12) + 12) % 12];
-        const octave = Math.floor(rounded / 12) - 1;
-        return name + octave;
-    }
-
-    function autoCorrelate(samples, sampleRate) {
-        let size = samples.length;
-        let rms = 0;
-
-        for (let i = 0; i < size; i++) {
-            rms += samples[i] * samples[i];
-        }
-
-        rms = Math.sqrt(rms / size);
-        if (rms < 0.01) {
-            return -1;
-        }
-
-        let start = 0;
-        let end = size - 1;
-        const threshold = 0.2;
-
-        for (let i = 0; i < size / 2; i++) {
-            if (Math.abs(samples[i]) < threshold) { start = i; break; }
-        }
-        for (let i = 1; i < size / 2; i++) {
-            if (Math.abs(samples[size - i]) < threshold) { end = size - i; break; }
-        }
-
-        const trimmed = samples.slice(start, end);
-        size = trimmed.length;
-
-        const correlations = new Float32Array(size);
-        for (let i = 0; i < size; i++) {
-            for (let j = 0; j < size - i; j++) {
-                correlations[i] += trimmed[j] * trimmed[j + i];
-            }
-        }
-
-        let position = 0;
-        while (position < size - 1 && correlations[position] > correlations[position + 1]) {
-            position++;
-        }
-
-        let maxValue = -1;
-        let maxPosition = -1;
-        for (let i = position; i < size; i++) {
-            if (correlations[i] > maxValue) {
-                maxValue = correlations[i];
-                maxPosition = i;
-            }
-        }
-
-        let period = maxPosition;
-        const x1 = correlations[period - 1];
-        const x2 = correlations[period];
-        const x3 = correlations[period + 1];
-        const a = (x1 + x3 - 2 * x2) / 2;
-        const b = (x3 - x1) / 2;
-
-        if (a) {
-            period -= b / (2 * a);
-        }
-
-        if (period <= 0) {
-            return -1;
-        }
-
-        return sampleRate / period;
     }
 
     function currentInstrument() {
@@ -133,7 +49,7 @@
         let bestDistance = Infinity;
 
         notes.forEach((name) => {
-            const target = noteToFrequency(name);
+            const target = Pitch.noteToFrequency(name, referenceA4());
             if (target === null) {
                 return;
             }
@@ -147,23 +63,6 @@
         return best;
     }
 
-    function renderStrings() {
-        const notes = currentInstrument().notes || [];
-        stringsEl.innerHTML = '';
-
-        notes.forEach((name) => {
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.textContent = name;
-            button.addEventListener('click', () => {
-                manualTarget = noteToFrequency(name) === null ? null : name;
-                stringsEl.querySelectorAll('button').forEach((b) => b.classList.remove('is-active'));
-                button.classList.add('is-active');
-            });
-            stringsEl.appendChild(button);
-        });
-    }
-
     function updateDisplay(frequency) {
         if (!frequency || frequency < 0) {
             noteEl.textContent = '--';
@@ -175,16 +74,21 @@
         }
 
         const notes = currentInstrument().notes || [];
-        let target = manualTarget ? { name: manualTarget, frequency: noteToFrequency(manualTarget) } : nearestTarget(frequency, notes);
+        let target = manualTarget
+            ? { name: manualTarget, frequency: Pitch.noteToFrequency(manualTarget, referenceA4()) }
+            : nearestTarget(frequency, notes);
 
-        if (!target) {
-            const midi = frequencyToMidi(frequency);
-            target = { name: midiToName(midi), frequency: frequency / Math.pow(2, (frequencyToMidi(frequency) - Math.round(frequencyToMidi(frequency))) / 12) };
+        if (!target || !target.frequency) {
+            const midi = Pitch.frequencyToMidi(frequency, referenceA4());
+            target = {
+                name: Pitch.midiToName(midi),
+                frequency: frequency / Math.pow(2, (midi - Math.round(midi)) / 12),
+            };
         }
 
         const cents = 1200 * Math.log2(frequency / target.frequency);
         const clamped = Math.max(-50, Math.min(50, cents));
-        const detected = midiToName(frequencyToMidi(frequency));
+        const detected = Pitch.midiToName(Pitch.frequencyToMidi(frequency, referenceA4()));
 
         noteEl.textContent = target.name;
         frequencyEl.textContent = frequency.toFixed(1) + ' Hz';
@@ -211,13 +115,16 @@
         }
 
         analyser.getFloatTimeDomainData(buffer);
-        const frequency = autoCorrelate(buffer, audioContext.sampleRate);
-        updateDisplay(frequency);
-
+        updateDisplay(Pitch.autoCorrelate(buffer, audioContext.sampleRate));
         frame = window.requestAnimationFrame(loop);
     }
 
     async function start() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            statusEl.textContent = 'Tu navegador no soporta acceso al microfono. Prueba con Chrome, Edge o Firefox.';
+            return;
+        }
+
         try {
             stream = await navigator.mediaDevices.getUserMedia({
                 audio: {
@@ -227,7 +134,12 @@
                 },
             });
 
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const Context = window.AudioContext || window.webkitAudioContext;
+            audioContext = new Context();
+            if (audioContext.state === 'suspended') {
+                await audioContext.resume();
+            }
+
             source = audioContext.createMediaStreamSource(stream);
             analyser = audioContext.createAnalyser();
             analyser.fftSize = 2048;
@@ -241,7 +153,7 @@
             statusEl.textContent = 'Escuchando... toca una nota.';
             loop();
         } catch (error) {
-            statusEl.textContent = 'No se pudo acceder al microfono. Revisa los permisos del navegador.';
+            statusEl.textContent = 'No se pudo acceder al microfono: es necesario para detectar la nota. Revisa los permisos del navegador (icono del candado).';
         }
     }
 
@@ -267,6 +179,73 @@
         toggleButton.classList.remove('btn-danger');
         statusEl.textContent = 'Pulsa "Escuchar" para empezar.';
         updateDisplay(0);
+    }
+
+    /* --- Sonar nota de referencia (afinar de oido) ---------------------- */
+    async function playTone(frequency, seconds) {
+        try {
+            const Context = window.AudioContext || window.webkitAudioContext;
+            if (!toneContext) {
+                toneContext = new Context();
+            }
+            if (toneContext.state === 'suspended') {
+                await toneContext.resume();
+            }
+
+            if (activeTone) {
+                activeTone.stop();
+                activeTone.disconnect();
+                activeTone = null;
+            }
+
+            const now = toneContext.currentTime;
+            const osc = toneContext.createOscillator();
+            const gain = toneContext.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(frequency, now);
+
+            gain.gain.setValueAtTime(0.0001, now);
+            gain.gain.exponentialRampToValueAtTime(0.28, now + 0.02);
+            gain.gain.setValueAtTime(0.28, now + seconds - 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + seconds);
+
+            osc.connect(gain);
+            gain.connect(toneContext.destination);
+            osc.start(now);
+            osc.stop(now + seconds + 0.05);
+
+            activeTone = osc;
+        } catch (error) {
+            statusEl.textContent = 'Tu navegador bloqueo la reproduccion del tono.';
+        }
+    }
+
+    function renderStrings() {
+        const notes = currentInstrument().notes || [];
+        stringsEl.innerHTML = '';
+
+        notes.forEach((name) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = name;
+            button.title = 'Tocar ' + name + ' para escuchar y afinar';
+            button.setAttribute('aria-label', 'Sonar la nota ' + name + ' de referencia');
+
+            button.addEventListener('click', () => {
+                manualTarget = Pitch.noteToFrequency(name, referenceA4()) === null ? null : name;
+                stringsEl.querySelectorAll('button').forEach((b) => b.classList.remove('is-active'));
+                button.classList.add('is-active');
+
+                const frequency = Pitch.noteToFrequency(name, referenceA4());
+                if (frequency) {
+                    playTone(frequency, 1.6);
+                    statusEl.textContent = 'Sonando ' + name + ' a ' + frequency.toFixed(1) + ' Hz. Afina tu cuerda hasta igualarla.';
+                }
+            });
+
+            stringsEl.appendChild(button);
+        });
     }
 
     toggleButton.addEventListener('click', () => {
