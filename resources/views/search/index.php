@@ -8,6 +8,7 @@ declare(strict_types=1);
 /** @var array<int, array<string, mixed>> $scores */
 /** @var array<int, array<string, mixed>> $resources */
 $pageScripts = ['js/search.js'];
+$bodyClass = 'skin-music';
 ?>
 <section class="container section">
     <div class="page-head">
@@ -33,6 +34,10 @@ $pageScripts = ['js/search.js'];
                     <ul class="track-list">
                         <?php foreach ($local as $song): ?>
                             <li class="track">
+                                <?php if (!empty($song['preview_url'])): ?>
+                                    <?php $payload = ['url' => $song['preview_url'], 'title' => $song['title'], 'artist' => $song['artist'], 'art' => '🎵']; ?>
+                                    <button type="button" class="play-btn" data-play="<?= e(json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) ?>" aria-label="Reproducir <?= e($song['title']) ?>">▶</button>
+                                <?php endif; ?>
                                 <div>
                                     <strong><?= e($song['title']) ?></strong>
                                     <small><?= e($song['artist']) ?><?= $song['album'] ? ' · ' . e($song['album']) : '' ?></small>
@@ -62,7 +67,8 @@ $pageScripts = ['js/search.js'];
                                 <small><?= e($track['artist']) ?><?= $track['album'] ? ' · ' . e($track['album']) : '' ?><?= $track['year'] ? ' (' . e($track['year']) . ')' : '' ?></small>
                             </div>
                             <?php if (!empty($track['preview'])): ?>
-                                <button type="button" class="btn btn-ghost btn-sm" data-preview="<?= e($track['preview']) ?>">▶︎</button>
+                                <?php $payload = ['url' => $track['preview'], 'title' => $track['title'], 'artist' => $track['artist'], 'art' => '🎵']; ?>
+                                <button type="button" class="play-btn" data-play="<?= e(json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) ?>" aria-label="Reproducir preview de <?= e($track['title']) ?>">▶</button>
                             <?php endif; ?>
                         </li>
                     <?php endforeach; ?>

@@ -8,6 +8,8 @@ use App\Core\Auth;
 /** @var int $scoreCount */
 /** @var int $resourceCount */
 /** @var array<int, array<string, mixed>> $latestResources */
+/** @var array<int, array<string, mixed>> $latestSongs */
+$bodyClass = 'skin-music';
 $user = Auth::user();
 ?>
 <section class="container section">
@@ -68,6 +70,32 @@ $user = Auth::user();
                             <span class="badge badge--<?= $score['visibility'] === 'public' ? 'public' : 'private' ?>">
                                 <?= $score['visibility'] === 'public' ? 'Publica' : 'Privada' ?>
                             </span>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+        </div>
+
+        <div class="panel">
+            <div class="panel__head">
+                <h2>Para ir sonando 🎧</h2>
+                <a href="<?= url('buscar') ?>">Buscar mas</a>
+            </div>
+
+            <?php if ($latestSongs === []): ?>
+                <p class="empty">El catalogo esta vacio por ahora.</p>
+            <?php else: ?>
+                <ul class="track-list">
+                    <?php foreach ($latestSongs as $song): ?>
+                        <li class="track">
+                            <?php if (!empty($song['preview_url'])): ?>
+                                <?php $payload = ['url' => $song['preview_url'], 'title' => $song['title'], 'artist' => $song['artist'], 'art' => '🎵']; ?>
+                                <button type="button" class="play-btn" data-play="<?= e(json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) ?>" aria-label="Reproducir <?= e($song['title']) ?>">▶</button>
+                            <?php endif; ?>
+                            <div>
+                                <strong><?= e($song['title']) ?></strong>
+                                <small><?= e($song['artist']) ?></small>
+                            </div>
                         </li>
                     <?php endforeach; ?>
                 </ul>

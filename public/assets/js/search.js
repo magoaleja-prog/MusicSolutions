@@ -20,7 +20,6 @@
     const externalBlock = document.querySelector('[data-block-external]');
 
     let timer = null;
-    let previewAudio = null;
 
     function escapeHtml(value) {
         return String(value == null ? '' : value)
@@ -35,6 +34,22 @@
         return '<p class="empty">' + message + '</p>';
     }
 
+    function playButton(track) {
+        if (!track || !track.url) {
+            return '';
+        }
+
+        const payload = {
+            url: track.url,
+            title: track.title || '',
+            artist: track.artist || '',
+            art: '🎵',
+        };
+
+        return '<button type="button" class="play-btn" data-play="' + escapeHtml(JSON.stringify(payload)) +
+            '" aria-label="Reproducir ' + escapeHtml(track.title || 'tema') + '">▶</button>';
+    }
+
     function renderLocal(items, term) {
         if (!items.length) {
             containers.local.innerHTML = empty(term === '' ? 'Sin canciones en el catalogo.' : 'Sin resultados en tu catalogo.');
@@ -42,7 +57,9 @@
         }
 
         containers.local.innerHTML = '<ul class="track-list">' + items.map((song) => (
-            '<li class="track"><div><strong>' + escapeHtml(song.title) + '</strong>' +
+            '<li class="track">' +
+            playButton({ url: song.preview_url, title: song.title, artist: song.artist }) +
+            '<div><strong>' + escapeHtml(song.title) + '</strong>' +
             '<small>' + escapeHtml(song.artist) + (song.album ? ' · ' + escapeHtml(song.album) : '') + '</small></div>' +
             (song.genre ? '<span class="badge">' + escapeHtml(song.genre) + '</span>' : '') +
             '</li>'
@@ -65,7 +82,8 @@
             '<div><strong>' + escapeHtml(track.title) + '</strong>' +
             '<small>' + escapeHtml(track.artist) + (track.album ? ' · ' + escapeHtml(track.album) : '') +
             (track.year ? ' (' + escapeHtml(track.year) + ')' : '') + '</small></div>' +
-            (track.preview ? '<button type="button" class="btn btn-ghost btn-sm" data-preview="' + escapeHtml(track.preview) + '">▶︎</button>' : '') +
+            playButton({ url: track.preview, title: track.title, artist: track.artist }) +
+            (track.url ? '<a class="btn btn-ghost btn-sm" href="' + escapeHtml(track.url) + '" target="_blank" rel="noopener noreferrer" title="Abrir en iTunes">↗</a>' : '') +
             '</li>'
         )).join('') + '</ul>';
     }
@@ -122,21 +140,5 @@
         event.preventDefault();
         window.clearTimeout(timer);
         search(input.value.trim());
-    });
-
-    document.addEventListener('click', (event) => {
-        const button = event.target.closest('[data-preview]');
-        if (!button) {
-            return;
-        }
-
-        const url = button.getAttribute('data-preview');
-        if (previewAudio) {
-            previewAudio.pause();
-        }
-
-        previewAudio = new Audio(url);
-        previewAudio.play();
-        button.textContent = '⏸';
     });
 })();

@@ -17,16 +17,18 @@ final class HomeController extends Controller
     public function index(): Response
     {
         $stats = ['scores' => 0, 'resources' => 0, 'songs' => 0];
+        $latestSongs = [];
 
         try {
             $stats['scores'] = (new Score())->count();
             $stats['resources'] = (new DevResource())->count();
             $stats['songs'] = (new Song())->count();
+            $latestSongs = (new Song())->latest(6);
         } catch (Throwable) {
             // La base de datos puede no estar migrada todavia; mostramos la landing igualmente.
         }
 
-        return $this->view('home/index', ['stats' => $stats]);
+        return $this->view('home/index', ['stats' => $stats, 'latestSongs' => $latestSongs]);
     }
 
     public function dashboard(): Response
@@ -41,6 +43,7 @@ final class HomeController extends Controller
             'scoreCount' => count($scores),
             'resourceCount' => (new DevResource())->countByUser($userId),
             'latestResources' => $resources,
+            'latestSongs' => (new Song())->latest(6),
         ]);
     }
 }

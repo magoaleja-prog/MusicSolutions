@@ -56,30 +56,35 @@ if ($userId === false) {
     echo "  · El usuario demo ya existe, se reutiliza.\n";
 }
 
-// --- Catalogo de canciones -------------------------------------------------
-if ((int) $pdo->query('SELECT COUNT(*) FROM songs')->fetchColumn() === 0) {
-    $songs = [
-        ['Claro de Luna', 'Ludwig van Beethoven', 'Sonatas', 'Clasica', 1801],
-        ['Canon en Re mayor', 'Johann Pachelbel', 'Obras barrocas', 'Clasica', 1680],
-        ['Asturias (Leyenda)', 'Isaac Albeniz', 'Suite Espanola', 'Clasica', 1892],
-        ['Entre dos aguas', 'Paco de Lucia', 'Fuente y caudal', 'Flamenco', 1973],
-        ['Spain', 'Chick Corea', 'Light as a Feather', 'Jazz', 1973],
-        ['Take Five', 'Dave Brubeck', 'Time Out', 'Jazz', 1959],
-        ['So What', 'Miles Davis', 'Kind of Blue', 'Jazz', 1959],
-        ['Autumn Leaves', 'Joseph Kosma', 'Standards', 'Jazz', 1945],
-        ['Hotel California', 'Eagles', 'Hotel California', 'Rock', 1976],
-        ['Stairway to Heaven', 'Led Zeppelin', 'Led Zeppelin IV', 'Rock', 1971],
-        ['Bohemian Rhapsody', 'Queen', 'A Night at the Opera', 'Rock', 1975],
-        ['Wonderwall', 'Oasis', '(What\'s the Story) Morning Glory?', 'Rock', 1995],
-        ['Blackbird', 'The Beatles', 'The White Album', 'Rock', 1968],
-        ['Shape of You', 'Ed Sheeran', 'Divide', 'Pop', 2017],
-        ['Someone Like You', 'Adele', '21', 'Pop', 2011],
-        ['Billie Jean', 'Michael Jackson', 'Thriller', 'Pop', 1982],
-    ];
+// --- Catalogo de canciones (con preview de audio real) ---------------------
+$songCount = (int) $pdo->query('SELECT COUNT(*) FROM songs')->fetchColumn();
 
+// Cada cancion apunta a un preview MP3 publico (SoundHelix, sin API key).
+$songs = [
+    ['Claro de Luna', 'Ludwig van Beethoven', 'Sonatas', 'Clasica', 1801, 1],
+    ['Canon en Re mayor', 'Johann Pachelbel', 'Obras barrocas', 'Clasica', 1680, 2],
+    ['Asturias (Leyenda)', 'Isaac Albeniz', 'Suite Espanola', 'Clasica', 1892, 3],
+    ['Entre dos aguas', 'Paco de Lucia', 'Fuente y caudal', 'Flamenco', 1973, 4],
+    ['Spain', 'Chick Corea', 'Light as a Feather', 'Jazz', 1973, 5],
+    ['Take Five', 'Dave Brubeck', 'Time Out', 'Jazz', 1959, 6],
+    ['So What', 'Miles Davis', 'Kind of Blue', 'Jazz', 1959, 7],
+    ['Autumn Leaves', 'Joseph Kosma', 'Standards', 'Jazz', 1945, 8],
+    ['Hotel California', 'Eagles', 'Hotel California', 'Rock', 1976, 9],
+    ['Stairway to Heaven', 'Led Zeppelin', 'Led Zeppelin IV', 'Rock', 1971, 10],
+    ['Bohemian Rhapsody', 'Queen', 'A Night at the Opera', 'Rock', 1975, 11],
+    ['Wonderwall', 'Oasis', '(What\'s the Story) Morning Glory?', 'Rock', 1995, 12],
+    ['Blackbird', 'The Beatles', 'The White Album', 'Rock', 1968, 13],
+    ['Shape of You', 'Ed Sheeran', 'Divide', 'Pop', 2017, 14],
+    ['Someone Like You', 'Adele', '21', 'Pop', 2011, 15],
+    ['Billie Jean', 'Michael Jackson', 'Thriller', 'Pop', 1982, 16],
+];
+
+$audioBase = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-';
+
+if ($songCount === 0) {
     $insert = $pdo->prepare(
-        'INSERT INTO songs (title, artist, album, genre, year)
-         VALUES (:title, :artist, :album, :genre, :year)'
+        'INSERT INTO songs (title, artist, album, genre, year, preview_url)
+         VALUES (:title, :artist, :album, :genre, :year, :preview_url)'
     );
 
     foreach ($songs as $song) {
@@ -89,12 +94,23 @@ if ((int) $pdo->query('SELECT COUNT(*) FROM songs')->fetchColumn() === 0) {
             'album' => $song[2],
             'genre' => $song[3],
             'year' => $song[4],
+            'preview_url' => $audioBase . $song[5] . '.mp3',
         ]);
     }
 
     echo '  ✓ Catalogo sembrado con ' . count($songs) . " canciones.\n";
 } else {
-    echo "  · El catalogo de canciones ya tiene datos.\n";
+    // Bases de datos existentes: completar los previews que falten.
+    try {
+        $patch = $pdo->prepare(
+            'UPDATE songs SET preview_url = CONCAT(:base, ((id % 16) + 1), ".mp3")
+             WHERE preview_url IS NULL OR preview_url = :empty'
+        );
+        $patch->execute(['base' => $audioBase, 'empty' => '']);
+        echo "  ✓ Previews de audio completados en el catalogo existente.\n";
+    } catch (PDOException $exception) {
+        echo "  · Los previews ya estan asignados.\n";
+    }
 }
 
 // --- Recursos de programadores --------------------------------------------
