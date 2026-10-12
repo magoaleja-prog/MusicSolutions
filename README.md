@@ -78,6 +78,20 @@ En Windows con XAMPP, PHP esta en `C:\xampp\php\php.exe` y MySQL en el panel de 
 
 ---
 
+## Arranque de un clic (Windows)
+
+Si usas XAMPP, hay un script que hace todo: enciende MySQL si esta apagado,
+levanta el servidor web y abre el navegador.
+
+1. **Doble clic en `iniciar.bat`** (dentro de la carpeta del proyecto).
+2. Se abre <http://localhost:8000> automáticamente.
+3. Entra con `demo@musicsolutions.test` / `password`.
+
+Para detener: cierra la ventana *MusicSolutions PHP* (el servidor) y usa el
+panel de XAMPP para MySQL si quieres apagarlo.
+
+---
+
 ## Comandos utiles
 
 Si tienes Composer instalado:
