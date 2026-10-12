@@ -41,8 +41,12 @@ $router->get('/api/buscar', [SearchController::class, 'api'], [AuthMiddleware::c
 
 // Zona de programadores
 $router->get('/programadores', [DeveloperController::class, 'index'], [AuthMiddleware::class]);
+$router->get('/programadores/playground', [DeveloperController::class, 'playground'], [AuthMiddleware::class]);
 $router->get('/programadores/nuevo', [DeveloperController::class, 'create'], [AuthMiddleware::class]);
 $router->post('/programadores', [DeveloperController::class, 'store'], [AuthMiddleware::class]);
 $router->get('/programadores/{id}', [DeveloperController::class, 'show'], [AuthMiddleware::class]);
 $router->get('/programadores/{id}/descargar', [DeveloperController::class, 'download'], [AuthMiddleware::class]);
 $router->post('/programadores/{id}/eliminar', [DeveloperController::class, 'destroy'], [AuthMiddleware::class]);
+
+// Playground de programadores: detector de errores (sintaxis) por API
+$router->post('/api/lint', [DeveloperController::class, 'lint'], [AuthMiddleware::class]);

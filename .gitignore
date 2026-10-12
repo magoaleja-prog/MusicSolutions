@@ -13,6 +13,8 @@
 !/storage/logs/.gitkeep
 /storage/cache/*
 !/storage/cache/.gitkeep
+/storage/tmp/*
+!/storage/tmp/.gitkeep
 
 # IDE / editors
 .idea/

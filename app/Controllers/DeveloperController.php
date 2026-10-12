@@ -11,6 +11,7 @@ use App\Core\Response;
 use App\Core\Session;
 use App\Core\Validator;
 use App\Models\DevResource;
+use App\Support\Linter;
 use App\Support\Uploader;
 use RuntimeException;
 
@@ -37,6 +38,33 @@ final class DeveloperController extends Controller
         return $this->view('developer/create', [
             'types' => self::ALLOWED_TYPES,
         ]);
+    }
+
+    public function playground(): Response
+    {
+        return $this->view('developer/playground', [
+            'languages' => Linter::supportedLanguages(),
+        ]);
+    }
+
+    public function lint(): Response
+    {
+        Csrf::verify();
+
+        $language = (string) request()->input('language', '');
+        $code = (string) request()->input('code', '');
+
+        if (!in_array($language, Linter::supportedLanguages(), true)) {
+            return Response::json(['error' => 'Lenguaje no soportado.'], 422);
+        }
+
+        try {
+            $result = Linter::lint($language, $code);
+        } catch (RuntimeException $exception) {
+            return Response::json(['error' => $exception->getMessage()], 500);
+        }
+
+        return Response::json($result);
     }
 
     public function store(): Response
@@ -172,6 +200,6 @@ final class DeveloperController extends Controller
 
         Session::flash('success', 'Recurso eliminado.');
 
-        return $this->redirect(url('developer'));
+        return $this->redirect(url('programadores'));
     }
 }

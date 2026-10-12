@@ -29,6 +29,13 @@ final class Request
 
     public function input(string $key, mixed $default = null): mixed
     {
+        if ($this->isJson()) {
+            $json = $this->json();
+            $value = $json[$key] ?? $default;
+
+            return is_string($value) ? trim($value) : $value;
+        }
+
         $value = $_POST[$key] ?? $_GET[$key] ?? $default;
 
         return is_string($value) ? trim($value) : $value;
@@ -36,12 +43,43 @@ final class Request
 
     public function all(): array
     {
+        if ($this->isJson()) {
+            return $this->json();
+        }
+
         return array_merge($_GET, $_POST);
     }
 
     public function has(string $key): bool
     {
+        if ($this->isJson()) {
+            return array_key_exists($key, $this->json());
+        }
+
         return isset($_POST[$key]) || isset($_GET[$key]);
+    }
+
+    /**
+     * Cuerpo de la peticion si viene en JSON (p.ej. para la API de lint).
+     */
+    public function json(): array
+    {
+        static $payload = null;
+
+        if ($payload === null) {
+            $raw = (string) file_get_contents('php://input');
+            $decoded = json_decode($raw, true);
+            $payload = is_array($decoded) ? $decoded : [];
+        }
+
+        return $payload;
+    }
+
+    private function isJson(): bool
+    {
+        $contentType = (string) ($_SERVER['CONTENT_TYPE'] ?? '');
+
+        return str_starts_with($contentType, 'application/json');
     }
 
     public function file(string $key): ?array
