@@ -96,7 +96,9 @@ if (!function_exists('url')) {
 
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
         $script = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? '/index.php'));
-        $directory = rtrim(dirname($script), '/');
+        // En Windows dirname() devuelve "\" como separador; se normaliza a "/"
+        // y se recorta el final para que la URL nunca contenga backslashes.
+        $directory = rtrim(str_replace('\\', '/', dirname($script)), '/');
 
         return $scheme . '://' . $host . $directory . '/' . ltrim($path, '/');
     }
