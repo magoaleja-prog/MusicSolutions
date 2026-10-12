@@ -11,6 +11,7 @@ $labels = [
     'tool' => 'Herramienta',
     'link' => 'Enlace',
 ];
+$bodyClass = 'skin-code';
 ?>
 <section class="container section section--narrow">
     <div class="page-head">

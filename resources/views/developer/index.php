@@ -12,15 +12,17 @@ $labels = [
     'tool' => 'Herramienta',
     'link' => 'Enlace',
 ];
+$bodyClass = 'skin-code';
 ?>
 <section class="container section">
     <div class="page-head">
         <div>
-            <p class="eyebrow">Comunidad</p>
+            <p class="eyebrow">Comunidad dev</p>
             <h1>Zona de programadores</h1>
-            <p class="muted">Snippets, librerias, herramientas y proyectos hechos por y para musicos.</p>
+            <p class="muted">Snippets, librerias, herramientas, proyectos y una consola para probar codigo.</p>
         </div>
         <div class="page-head__actions">
+            <a class="btn btn-ghost" href="<?= url('programadores/playground') ?>">▸ Consola</a>
             <a class="btn btn-primary" href="<?= url('programadores/nuevo') ?>">+ Publicar recurso</a>
         </div>
     </div>

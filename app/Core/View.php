@@ -13,16 +13,19 @@ final class View
 {
     public static function render(string $view, array $data = [], ?string $layout = 'layouts/app'): string
     {
-        $content = self::renderFile($view, $data);
+        $viewVars = [];
+        $content = self::renderFile($view, $data, $viewVars);
 
         if ($layout === null) {
             return $content;
         }
 
-        return self::renderFile($layout, array_merge($data, ['content' => $content]));
+        // Las variables que la vista declara (p.ej. $pageScripts o $bodyClass)
+        // tambien llegan al layout, igual que los datos del controlador.
+        return self::renderFile($layout, array_merge($data, $viewVars, ['content' => $content]));
     }
 
-    private static function renderFile(string $view, array $data): string
+    private static function renderFile(string $view, array $data, ?array &$declared = null): string
     {
         $path = base_path('resources/views/' . str_replace('.', '/', $view) . '.php');
 
@@ -34,7 +37,13 @@ final class View
 
         ob_start();
         require $path;
+        $output = (string) ob_get_clean();
 
-        return (string) ob_get_clean();
+        if ($declared !== null) {
+            $internal = ['data' => true, 'path' => true, 'output' => true, 'declared' => true];
+            $declared = array_diff_key(get_defined_vars(), $data, $internal);
+        }
+
+        return $output;
     }
 }
