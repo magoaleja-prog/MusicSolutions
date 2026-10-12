@@ -1849,6 +1849,13 @@ body.skin-code .tabs a.is-active {
     box-shadow: 0 0 20px var(--accent-glow);
 }
 
+.player__art img {
+    width: 46px;
+    height: 46px;
+    border-radius: 10px;
+    object-fit: cover;
+}
+
 .player__info {
     min-width: 0;
     display: flex;

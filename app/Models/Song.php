@@ -10,7 +10,7 @@ final class Song extends Model
 {
     protected string $table = 'songs';
 
-    public function search(string $term, int $limit = 12): array
+    public function search(string $term, int $limit = 20): array
     {
         $limit = max(1, min(50, $limit));
         $like = '%' . $term . '%';
@@ -23,7 +23,7 @@ final class Song extends Model
         );
     }
 
-    public function latest(int $limit = 8): array
+    public function latest(int $limit = 20): array
     {
         return $this->query('SELECT * FROM songs ORDER BY created_at DESC LIMIT ' . max(1, min(50, $limit)));
     }

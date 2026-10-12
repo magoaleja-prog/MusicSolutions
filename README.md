@@ -16,7 +16,7 @@ y JavaScript propios, y conectada a una base de datos MySQL/MariaDB llamada
 | ------ | -------- |
 | 🔐 Autenticacion | Registro e inicio de sesion con contrasenas cifradas (bcrypt) en la BD `solutions`. |
 | 🎚️ Afinador | Detecta la nota con el microfono (Web Audio API, algoritmo probado con Node) y muestra la desviacion en cents, con presets por instrumento y **nota de referencia sonora** para afinar de oido. |
-| 🔊 Musica de verdad | Cada cancion del catalogo tiene un preview MP3: **reproductor global** en la barra inferior con progreso y volumen (en la portada, el buscador y el panel). |
+| 🔊 Musica de verdad | Catalogo de **musica real**: el seed descarga titulos de iTunes con su **preview de audio y portada**; **reproductor global** en la barra inferior (progreso, volumen y arte del tema) en la portada, el buscador y el panel. |
 | 🎼 Partituras | Sube PDF, MusicXML, MuseScore, MIDI o imagenes; organiza por instrumento y comparte o mantén privado. |
 | 🔎 Buscar musica | Combina un catalogo local con resultados publicos de iTunes (sin API key) y busca tambien en partituras y recursos. |
 | 🧩 Programadores | Publica snippets, enlaces, librerias o archivos descargables, con **consola Playground** y **detector de errores** (lint PHP, JavaScript y Python). |
@@ -158,6 +158,10 @@ MusicSolutions/
    O, si prefieres crear las tablas desde cero, importa las migraciones de
    `database/migrations/` en orden y ejecuta `bin/seed.php`.
 
+   > **Sobre el catalogo**: `bin/seed.php` descarga musica real de iTunes
+   > (titulo, artista, genero, portada y preview) cuando hay conexion, y
+   > reemplaza los temas de demostracion. Sin red, se queda el catalogo demo.
+
 3. **Configura `.env`** con los datos del hosting:
 
    ```ini
@@ -169,8 +173,8 @@ MusicSolutions/
    ```
 
    Con `APP_URL=` vacio las URLs se calculan solas.
-4. Los previews de audio usan URLs publicas (SoundHelix / iTunes), no exigen
-   almacenamiento propio. Los archivos que suban los usuarios van a
+4. Los previews y portadas del catalogo usan URLs publicas de iTunes, no
+   exigen almacenamiento propio. Los archivos que suban los usuarios van a
    `public/uploads/`, que ya esta en el `.gitignore`.
 5. Requisitos: PHP 8.1+, extensiones `pdo_mysql`, `json`, `fileinfo` y
    `curl`. El detector de errores del Playground usa `php`, `node` y/o

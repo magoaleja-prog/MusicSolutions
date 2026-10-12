@@ -23,6 +23,7 @@ final class MusicSearch
             'entity' => 'song',
             'limit' => max(1, min(25, $limit)),
             'media' => 'music',
+            'country' => 'es',
         ]);
 
         $payload = self::get($url);

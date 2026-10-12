@@ -81,6 +81,29 @@
         const closeBtn = playerEl.querySelector('[data-player-close]');
         const volumeInput = playerEl.querySelector('[data-player-volume]');
 
+        // El arte puede ser la portada (URL) o un icono de texto (emoji).
+        function setArt(value) {
+            artEl.replaceChildren();
+
+            if (!value) {
+                artEl.textContent = '🎵';
+                return;
+            }
+
+            if (typeof value === 'string' && /^https?:\/\//i.test(value)) {
+                const img = document.createElement('img');
+                img.src = value;
+                img.alt = '';
+                img.width = 46;
+                img.height = 46;
+                img.loading = 'lazy';
+                artEl.appendChild(img);
+                return;
+            }
+
+            artEl.textContent = value;
+        }
+
         const playerState = {
             play(track, button) {
                 if (nowPlaying && nowPlaying.button === button && !audio.paused) {
@@ -93,7 +116,7 @@
 
                 titleEl.textContent = track.title || 'Sin titulo';
                 artistEl.textContent = track.artist || '';
-                artEl.textContent = track.art || '🎵';
+                setArt(track.art);
                 barEl.setAttribute('aria-valuenow', '0');
 
                 document.body.classList.add('has-player');

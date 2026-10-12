@@ -10,7 +10,10 @@
     }
 
     const input = form.querySelector('[data-search-input]');
-    const resultsUrl = form.getAttribute('action');
+    const pageUrl = form.getAttribute('action');
+    // La busqueda en vivo usa el endpoint JSON; la accion del formulario
+    // (pageUrl) se mantiene para el fallback sin JavaScript.
+    const apiUrl = pageUrl.replace(/\/buscar$/, '/api/buscar');
     const containers = {
         local: document.querySelector('[data-result-local]'),
         external: document.querySelector('[data-result-external]'),
@@ -43,7 +46,7 @@
             url: track.url,
             title: track.title || '',
             artist: track.artist || '',
-            art: '🎵',
+            art: track.artwork || '🎵',
         };
 
         return '<button type="button" class="play-btn" data-play="' + escapeHtml(JSON.stringify(payload)) +
@@ -58,7 +61,8 @@
 
         containers.local.innerHTML = '<ul class="track-list">' + items.map((song) => (
             '<li class="track">' +
-            playButton({ url: song.preview_url, title: song.title, artist: song.artist }) +
+            (song.artwork_url ? '<img src="' + escapeHtml(song.artwork_url) + '" alt="" width="48" height="48" loading="lazy">' : '') +
+            playButton({ url: song.preview_url, title: song.title, artist: song.artist, artwork: song.artwork_url }) +
             '<div><strong>' + escapeHtml(song.title) + '</strong>' +
             '<small>' + escapeHtml(song.artist) + (song.album ? ' · ' + escapeHtml(song.album) : '') + '</small></div>' +
             (song.genre ? '<span class="badge">' + escapeHtml(song.genre) + '</span>' : '') +
@@ -95,7 +99,7 @@
         }
 
         containers.scores.innerHTML = '<ul class="stack-list">' + items.map((score) => (
-            '<li><a href="' + resultsUrl.replace(/buscar.*$/, 'partituras/' + score.id) + '">' +
+            '<li><a href="' + pageUrl.replace(/buscar.*$/, 'partituras/' + score.id) + '">' +
             '<strong>' + escapeHtml(score.title) + '</strong>' +
             '<small>' + escapeHtml(score.composer || 'Compositor desconocido') + '</small></a>' +
             '<span class="badge">' + escapeHtml(score.instrument || 'Partitura') + '</span></li>'
@@ -109,14 +113,14 @@
         }
 
         containers.resources.innerHTML = '<ul class="stack-list">' + items.map((resource) => (
-            '<li><a href="' + resultsUrl.replace(/buscar.*$/, 'programadores/' + resource.id) + '">' +
+            '<li><a href="' + pageUrl.replace(/buscar.*$/, 'programadores/' + resource.id) + '">' +
             '<strong>' + escapeHtml(resource.title) + '</strong>' +
             '<small>' + escapeHtml(resource.type) + (resource.language ? ' · ' + escapeHtml(resource.language) : '') + '</small></a></li>'
         )).join('') + '</ul>';
     }
 
     function search(term) {
-        fetch(resultsUrl + '?q=' + encodeURIComponent(term), {
+        fetch(apiUrl + '?q=' + encodeURIComponent(term), {
             headers: { 'Accept': 'application/json' },
         })
             .then((response) => response.json())

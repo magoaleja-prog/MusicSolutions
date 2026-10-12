@@ -113,6 +113,94 @@ if ($songCount === 0) {
     }
 }
 
+// --- Sincronizar el catalogo con musica real (iTunes, si hay red) -------
+// Reemplaza los temas de demostracion (SoundHelix, audio que no coincide con
+// el titulo) por canciones reales con su preview y portada. Es repetible:
+// solo inserta lo que falta y no toca nada mas.
+
+$catalogueTerms = [
+    'flamenco', 'rock', 'pop', 'jazz', 'clasica', 'electronica', 'reggaeton',
+    'latin', 'indie', 'metal', 'blues', 'salsa', 'hip hop', 'folk', 'soul',
+    'reggae', 'banda sonora', 'chill', 'guitarra', 'piano', 'opera', 'bach',
+    'beethoven', 'mozart', 'tango', 'bolero', 'cumbia', 'merengue',
+    'bossa nova', 'rap', 'techno', 'house', 'rumba', 'country', 'funk', 'disco',
+];
+
+$tracks = [];
+
+foreach ($catalogueTerms as $term) {
+    $payload = fetch_json('https://itunes.apple.com/search?' . http_build_query([
+        'term' => $term,
+        'entity' => 'song',
+        'media' => 'music',
+        'country' => 'es',
+        'limit' => 12,
+    ]));
+
+    foreach (($payload['results'] ?? []) as $track) {
+        if (empty($track['previewUrl'])) {
+            continue;
+        }
+
+        $key = strtolower(trim(($track['trackName'] ?? '') . '|' . ($track['artistName'] ?? '')));
+
+        if ($key === '' || isset($tracks[$key])) {
+            continue;
+        }
+
+        $artwork = (string) ($track['artworkUrl100'] ?? '');
+        // Sube la resolucion de la portada (artworkUrl100 -> 300x300).
+        $artwork = str_replace('100x100', '300x300', $artwork);
+
+        $tracks[$key] = [
+            'title' => trim((string) ($track['trackName'] ?? 'Sin titulo')),
+            'artist' => trim((string) ($track['artistName'] ?? 'Artista desconocido')),
+            'album' => trim((string) ($track['collectionName'] ?? '')),
+            'genre' => trim((string) ($track['primaryGenreName'] ?? '')),
+            'year' => isset($track['releaseDate']) ? (int) substr((string) $track['releaseDate'], 0, 4) : 0,
+            'preview' => (string) $track['previewUrl'],
+            'artwork' => $artwork,
+        ];
+    }
+}
+
+if ($tracks === []) {
+    echo "  · Sin conexion con iTunes ahora mismo: se mantiene el catalogo de demostracion.\n";
+} else {
+    // Quita los temas demo de SoundHelix (sus nombres no correspondian al audio).
+    $pdo->exec("DELETE FROM songs WHERE preview_url LIKE '%soundhelix.com%'");
+
+    $existing = $pdo->query('SELECT preview_url FROM songs')->fetchAll(PDO::FETCH_COLUMN);
+
+    $insert = $pdo->prepare(
+        'INSERT INTO songs (title, artist, album, genre, year, preview_url, artwork_url)
+         VALUES (:title, :artist, :album, :genre, :year, :preview_url, :artwork_url)'
+    );
+
+    $added = 0;
+
+    foreach ($tracks as $track) {
+        if (in_array($track['preview'], $existing, true)) {
+            continue;
+        }
+
+        $insert->execute([
+            'title' => $track['title'],
+            'artist' => $track['artist'],
+            'album' => $track['album'],
+            'genre' => $track['genre'],
+            'year' => $track['year'] ?: null,
+            'preview_url' => $track['preview'],
+            'artwork_url' => $track['artwork'] ?: null,
+        ]);
+
+        $added++;
+    }
+
+    $total = (int) $pdo->query('SELECT COUNT(*) FROM songs')->fetchColumn();
+    echo "  ✓ Catalogo real desde iTunes: {$added} nuevos, {$total} temas en total (con preview y portada).\n";
+}
+
 // --- Recursos de programadores --------------------------------------------
 if ((int) $pdo->query('SELECT COUNT(*) FROM dev_resources')->fetchColumn() === 0) {
     $resources = [
@@ -162,6 +250,45 @@ if ((int) $pdo->query('SELECT COUNT(*) FROM dev_resources')->fetchColumn() === 0
     echo '  ✓ Recursos de programadores sembrados: ' . count($resources) . ".\n";
 } else {
     echo "  · Ya existen recursos de programadores.\n";
+}
+
+/**
+ * GET + JSON para la sincronizacion del catalogo (curl o stream context).
+ */
+function fetch_json(string $url): ?array
+{
+    if (function_exists('curl_init')) {
+        $handle = curl_init($url);
+        curl_setopt_array($handle, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 6,
+            CURLOPT_CONNECTTIMEOUT => 4,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_USERAGENT => 'MusicSolutions/1.0',
+        ]);
+
+        $response = curl_exec($handle);
+        $status = (int) curl_getinfo($handle, CURLINFO_HTTP_CODE);
+        curl_close($handle);
+
+        $json = ($status >= 200 && $status < 300 && is_string($response)) ? $response : null;
+    } else {
+        $json = @file_get_contents($url, false, stream_context_create([
+            'http' => [
+                'timeout' => 6,
+                'method' => 'GET',
+                'header' => "User-Agent: MusicSolutions/1.0\r\n",
+            ],
+        ]));
+    }
+
+    if (!is_string($json)) {
+        return null;
+    }
+
+    $decoded = json_decode($json, true);
+
+    return is_array($decoded) ? $decoded : null;
 }
 
 echo "\nListo. Entra con demo@musicsolutions.test / password\n";

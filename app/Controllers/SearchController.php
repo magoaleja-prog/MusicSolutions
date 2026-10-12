@@ -39,7 +39,7 @@ final class SearchController extends Controller
 
         if ($term === '') {
             return [
-                'local' => (new Song())->latest(8),
+                'local' => (new Song())->latest(20),
                 'external' => [],
                 'scores' => [],
                 'resources' => [],

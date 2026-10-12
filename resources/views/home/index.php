@@ -52,8 +52,11 @@ $ticker = true;
         <ul class="track-list">
             <?php foreach ($latestSongs as $song): ?>
                 <li class="track">
+                    <?php if (!empty($song['artwork_url'])): ?>
+                        <img src="<?= e($song['artwork_url']) ?>" alt="" width="48" height="48" loading="lazy">
+                    <?php endif; ?>
                     <?php if (!empty($song['preview_url'])): ?>
-                        <?php $payload = ['url' => $song['preview_url'], 'title' => $song['title'], 'artist' => $song['artist'], 'art' => '🎵']; ?>
+                        <?php $payload = ['url' => $song['preview_url'], 'title' => $song['title'], 'artist' => $song['artist'], 'art' => $song['artwork_url'] ?: '🎵']; ?>
                         <button type="button" class="play-btn" data-play="<?= e(json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) ?>" aria-label="Reproducir <?= e($song['title']) ?>">▶</button>
                     <?php endif; ?>
                     <div>
